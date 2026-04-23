@@ -9,7 +9,10 @@ class RAGEngine:
         context = self.retriever.retrieve(query)
 
         prompt = f"""
-                Use the context below to answer the question.
+                Answer ONLY using the provided context.
+
+                If the answer is not explicitly available in the context, say:
+                'The information is not available in the provided documents.'
 
                 Context:
                 {' '.join(context)}
@@ -17,4 +20,5 @@ class RAGEngine:
                 Question:
                 {query}
                 """
+
         return self.llm.generate(prompt)

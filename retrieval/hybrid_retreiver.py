@@ -5,8 +5,7 @@ class HybridRetriever:
 
     def retrieve(self, query):
         bm25_results = self.bm25.retrieve(query, k=2)
-        vector_results = self.vector.retrieve(query)
+        vector_results = self.vector.retrieve(query)[:1]
 
-        combined = bm25_results + vector_results
-
-        return list(dict.fromkeys(combined))
+        combined = list(dict.fromkeys(bm25_results + vector_results))
+        return combined[:2]
