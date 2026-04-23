@@ -6,4 +6,4 @@ class Embedder:
         self.model = SentenceTransformer(EMBEDDING_MODEL)
 
     def embed(self, texts):
-        return self.model.encode(texts, normalize_embeddings=True)
+        return self.model.encode(texts)

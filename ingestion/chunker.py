@@ -1,18 +1,13 @@
+from config import CHUNK_SIZE, CHUNK_OVERLAP
+
 class Chunker:
     def chunk(self, text):
-        paragraphs = text.split("\n\n")
         chunks = []
+        start = 0
 
-        current_chunk = ""
-
-        for para in paragraphs:
-            if len(current_chunk) + len(para) < 1000:
-                current_chunk += "\n\n" + para
-            else:
-                chunks.append(current_chunk.strip())
-                current_chunk = para
-
-        if current_chunk:
-            chunks.append(current_chunk.strip())
+        while start < len(text):
+            end = start + CHUNK_SIZE
+            chunks.append(text[start:end])
+            start += CHUNK_SIZE - CHUNK_OVERLAP
 
         return chunks
