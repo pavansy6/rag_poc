@@ -2,7 +2,7 @@
 
 This project is a simple in-house RAG (Retrieval-Augmented Generation) assistant built in Python.
 
-It reads internal documents, converts them into embeddings, stores them in a local FAISS vector database, and uses a local Hugging Face model to answer questions based on those documents.
+It reads internal documents, indexes them using the BM25 algorithm for keyword search, and uses a local Ollama model to answer questions based on those documents.
 
 The current setup is focused on cybersecurity and compliance-related questions, and the model is guided to answer like a CISO.
 
@@ -22,16 +22,16 @@ The flow is simple:
 
 3. Large documents are split into smaller chunks.
 
-4. Each chunk is converted into embeddings using a sentence transformer model.
+4. The chunks are indexed using the BM25 lexical search algorithm.
 
-5. The embeddings are stored in FAISS for fast similarity search.
+5. When a user asks a question, the following workflow occurs:
 
-6. When a user asks a question:
-
-   * the question is converted into an embedding
-   * FAISS finds the most relevant chunks
-   * those chunks are added as context in the prompt
-   * the LLM generates the final answer
+   * **User Query**: The question is passed to the system
+   * **BM25 Retriever**: Keyword-based search algorithm matches the query
+   * **Top Matching Chunks**: The most relevant document chunks are retrieved
+   * **Prompt Builder**: The chunks are wrapped into the system context
+   * **Ollama LLM**: The local Ollama model processes the prompt
+   * **Response**: The final generated answer is presented
 
 ---
 
@@ -60,7 +60,9 @@ rag_poc/
 │   └── faiss_store.py      # FAISS logic
 │
 ├── retrieval/
-│   └── retriever.py        # retrieves relevant chunks
+│   ├── bm25_retreiver.py   # lexical keyword-based retriever
+│   ├── hybrid_retreiver.py # combines lexical and semantic
+│   └── retreiver.py        # retrieves relevant chunks (semantic)
 │
 └── rag/
     └── engine.py           # builds prompt and gets answer
@@ -114,7 +116,6 @@ http://localhost:8501
 
 ## Notes
 
-* The first run may take some time because models are downloaded from Hugging Face.
 * Downloaded models are cached locally.
 * FAISS files are stored in the root directory.
 * If you add new documents, re-run the app to rebuild embeddings.

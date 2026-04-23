@@ -3,10 +3,27 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from config import SYSTEM_PROMPT
 
 class LLM:
+    """
+    A wrapper class for interacting with a localized Large Language Model (LLM) using Ollama.
+    """
     def __init__(self):
-        self.llm = ChatOllama(model="qwen2.5:1.5b")
+        """
+        Initializes the ChatOllama interface.
+        Select the appropriate model name matching your local Ollama setup.
+        """
+        # self.llm = ChatOllama(model="qwen2.5:1.5b")
+        self.llm = ChatOllama(model="FenkoHQ/Foundation-Sec-8B:latest")
 
     def generate(self, prompt):
+        """
+        Generates a text response based on the SYSTEM_PROMPT and the user query/context.
+        
+        Args:
+            prompt (str): The specific question and retrieved context formatted for the model.
+        
+        Returns:
+            str: The text content of the language model's generated response.
+        """
         messages = [
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=prompt)

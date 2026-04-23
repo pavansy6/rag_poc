@@ -1,3 +1,10 @@
+"""
+Command-Line Interface for RAG Assistant
+
+This script initializes the core ingestion, embedding, vector store, and language models, 
+and provides a simple terminal-based loop for interacting with the RAG system.
+"""
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -31,12 +38,12 @@ store.add(embeddings, chunks)
 store.save()
 
 # retriever = Retreiver(embedder, store)
-# retriever = BM25Retriever(chunks)
+retriever = BM25Retriever(chunks)
 
-vector_retriever = Retreiver(embedder, store)
-bm25_retriever = BM25Retriever(chunks)
+# vector_retriever = Retreiver(embedder, store)
+# bm25_retriever = BM25Retriever(chunks)
 
-retriever = HybridRetriever(bm25_retriever, vector_retriever)
+# retriever = HybridRetriever(bm25_retriever, vector_retriever)
 
 llm = LLM()
 rag = RAGEngine(retriever, llm)

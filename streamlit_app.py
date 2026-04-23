@@ -1,3 +1,11 @@
+"""
+Streamlit Web Interface for RAG Assistant
+
+This script provides a user-friendly browser-based chat interface. It utilizes 
+Streamlit's caching mechanisms to avoid re-initializing heavy ML models on every interaction,
+and manages the session state to preserve conversation history.
+"""
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -13,6 +21,10 @@ from retrieval.retreiver import Retreiver
 from retrieval.bm25_retreiver import BM25Retriever
 from retrieval.hybrid_retreiver import HybridRetriever
 from rag.engine import RAGEngine
+
+# TODO: get the document where this was fetched
+# TODO: Why AI came to the conclusion (hidden)
+# TODO: generate technical and non technical documents
 
 
 @st.cache_resource
