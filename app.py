@@ -31,12 +31,12 @@ store.add(embeddings, chunks)
 store.save()
 
 # retriever = Retreiver(embedder, store)
-retriever = BM25Retriever(chunks)
+# retriever = BM25Retriever(chunks)
 
-# vector_retriever = Retreiver(embedder, store)
-# bm25_retriever = BM25Retriever(chunks)
+vector_retriever = Retreiver(embedder, store)
+bm25_retriever = BM25Retriever(chunks)
 
-# retriever = HybridRetriever(bm25_retriever, vector_retriever)
+retriever = HybridRetriever(bm25_retriever, vector_retriever)
 
 llm = LLM()
 rag = RAGEngine(retriever, llm)
