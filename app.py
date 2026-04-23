@@ -30,8 +30,8 @@ store = FAISSStore(dim=len(embeddings[0]))
 store.add(embeddings, chunks)
 store.save()
 
-retriever = Retreiver(embedder, store)
-# retriever = BM25Retriever(chunks)
+# retriever = Retreiver(embedder, store)
+retriever = BM25Retriever(chunks)
 
 # vector_retriever = Retreiver(embedder, store)
 # bm25_retriever = BM25Retriever(chunks)
