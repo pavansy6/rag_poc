@@ -1,0 +1,14 @@
+transformers
+torch
+sentence-transformers
+faiss-cpu
+langchain
+pypdf
+python-docx
+unstructured
+fastapi
+uvicorn
+python-multipart
+accelerate
+bitsandbytes
+torchvision
