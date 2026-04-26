@@ -14,16 +14,6 @@ class Retreiver:
         self.embedder = embedder
         self.store = store
 
-    def retrieve(self, query):
-        """
-        Retrieves relevant documents by converting the user's query into an embedding 
-        and performing a similarity search in FAISS.
-        
-        Args:
-            query (str): The plain text search string.
-            
-        Returns:
-            list[str]: Semantic matches from the vector index.
-        """
+    def retrieve(self, query, k=5): # Increase k here
         embedding = self.embedder.embed([query])[0]
-        return self.store.search(embedding)
+        return self.store.search(embedding, k=k)

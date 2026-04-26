@@ -1,23 +1,10 @@
-from sentence_transformers import SentenceTransformer
-from config import EMBEDDING_MODEL
+from langchain_ollama import OllamaEmbeddings
 
 class Embedder:
-    """
-    A utility class to transform text chunks into numerical vector embeddings using 
-    HuggingFace's SentenceTransformer models.
-    """
     def __init__(self):
-        """Initializes the SentenceTransformer with the configured embedding model."""
-        self.model = SentenceTransformer(EMBEDDING_MODEL)
+        # This matches the model you just pulled in Ollama
+        self.model = OllamaEmbeddings(model="nomic-embed-text")
 
     def embed(self, texts):
-        """
-        Converts a list of text strings into a list of dense vector embeddings.
-        
-        Args:
-            texts (list[str]): A list of text strings to embed.
-        
-        Returns:
-            numpy.ndarray: An array of dense numerical vectors representing the text semantics.
-        """
-        return self.model.encode(texts)
+        # OllamaEmbeddings uses embed_documents instead of encode
+        return self.model.embed_documents(texts)

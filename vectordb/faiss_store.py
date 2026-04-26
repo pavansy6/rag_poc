@@ -3,48 +3,31 @@ import numpy as np
 import pickle
 import os
 from datetime import datetime
-from config import FAISS_INDEX_PATH
 
 class FAISSStore:
-    """
-    A wrapper class for managing a local FAISS (Facebook AI Similarity Search) 
-    vector database, used to store and retrieve dense vector embeddings efficiently.
-    """
     def __init__(self, dim):
-        """
-        Initializes an empty FAISS L2 (Euclidean distance) index.
-        
-        Args:
-            dim (int): The dimensionality of the vector embeddings to be added.
-        """
-        self.index = faiss.IndexFlatL2(dim)
+        # Switch from IndexFlatL2 to IndexFlatIP
+        self.index = faiss.IndexFlatIP(dim)
         self.texts = []
 
     def add(self, embeddings, texts):
-        """
-        Adds vectors and their corresponding text chunks to the FAISS index and local store.
+        # Convert to float32
+        embeddings = np.array(embeddings).astype("float32")
         
-        Args:
-            embeddings (numpy.ndarray): Dense vector embeddings generated from the text.
-            texts (list[str]): The plain text chunks that align with the embeddings.
-        """
-        self.index.add(np.array(embeddings).astype("float32"))
+        # CRITICAL: Normalize vectors for Inner Product to act as Cosine Similarity
+        faiss.normalize_L2(embeddings)
+        
+        self.index.add(embeddings)
         self.texts.extend(texts)
 
-    def search(self, embedding, k=3):
-        """
-        Performs a similarity search against the FAISS index using an input embedding.
+    def search(self, embedding, k=5):
+        # Convert query embedding to float32 and reshape
+        embedding = np.array([embedding]).astype("float32")
         
-        Args:
-            embedding (numpy.ndarray): The vectorized query string.
-            k (int, optional): The number of top-matching documents to return. Defaults to 3.
-            
-        Returns:
-            list[str]: A list containing the top text chunks that match the query semantically.
-        """
-        distances, indices = self.index.search(
-            np.array([embedding]).astype("float32"), k
-        )
+        # CRITICAL: Normalize the query vector as well
+        faiss.normalize_L2(embedding)
+        
+        distances, indices = self.index.search(embedding, k)
         return [self.texts[i] for i in indices[0]]
 
     def save(self):

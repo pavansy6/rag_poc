@@ -27,7 +27,7 @@ class RAGEngine:
 
         # Assemble the prompt with context injection
         prompt = f"""
-                Use the context below to answer the question.
+                {SYSTEM_PROMPT}.
 
                 Context:
                 {' '.join(context)}
