@@ -11,7 +11,7 @@ class LLM:
         Initializes the ChatOllama interface.
         Select the appropriate model name matching your local Ollama setup.
         """
-        self.llm = ChatOllama(model="qwen2.5:1.5b", temperature=0.0)
+        self.llm = ChatOllama(model="qwen2.5:1.5b", temperature=0.0, repetition_penalty=1.3)
         # self.llm = ChatOllama(model="llama3.1:8b", temperature=0.0)
         # self.llm = ChatOllama(model="FenkoHQ/Foundation-Sec-8B:latest")
 
