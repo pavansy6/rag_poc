@@ -3,7 +3,7 @@ Configuration Module
 """
 
 # Generation model
-MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
+MODEL_NAME = "qwen2.5:1.5b"
 
 # Embedding model (used by Ollama / SentenceTransformer)
 EMBEDDING_MODEL = "nomic-embed-text"

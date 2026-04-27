@@ -1,10 +1,11 @@
+from typing import List
 from langchain_ollama import OllamaEmbeddings
 
 class Embedder:
-    def __init__(self):
-        # This matches the model you just pulled in Ollama
-        self.model = OllamaEmbeddings(model="nomic-embed-text")
 
-    def embed(self, texts):
-        # OllamaEmbeddings uses embed_documents instead of encode
-        return self.model.embed_documents(texts)
+    def __init__(self, model_name: str='nomic-embed-text'):
+        self.model = OllamaEmbeddings(model=model_name)
+
+    def embed(self, texts: List[str]) -> List[List[float]]:
+        embeddings = self.model.embed_documents(texts)
+        return embeddings
