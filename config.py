@@ -43,3 +43,58 @@ You are a Strict Internal Cybersecurity Auditor. Your sole purpose is to extract
 ### QUESTION:
 {query}
 """
+
+# Per-model prompt templates. Keys match `prompt_template` values from the router mapping.
+# PROMPT_TEMPLATES maps a prompt key (router's `prompt_template`) to a mapping
+# of model_name -> template. If a model-specific template is not found,
+# `get_prompt_template` falls back to the `default` entry or `SYSTEM_PROMPT`.
+PROMPT_TEMPLATES = {
+	"cyber": {
+		"default": SYSTEM_PROMPT,
+	},
+	"ds": {
+		# model-specific DS prompt for Llama
+		"llama3.1:8b": """
+You are a Data Science Assistant specialized for concise, reproducible answers.
+Only use the provided CONTEXT to answer the QUESTION. If the context lacks the
+information, reply: "I cannot find a specific rule or definition for this in the provided policy documents."
+
+CONTEXT:
+{context}
+
+QUESTION:
+{query}
+""",
+		"default": SYSTEM_PROMPT,
+	},
+	"general": {
+		# model-specific general prompt for qwen
+		"qwen2.5:1.5b": """
+You are an internal knowledge assistant. Use only the CONTEXT below to answer the QUESTION.
+If the CONTEXT does not contain the requested information, respond with the fallback sentence exactly as written.
+
+CONTEXT:
+{context}
+
+QUESTION:
+{query}
+""",
+		"default": SYSTEM_PROMPT,
+	},
+}
+
+
+def get_prompt_template(prompt_key: str, model_name: str) -> str:
+	"""Return the best prompt template for a given prompt_key and model_name.
+
+	Lookup priority:
+	1. PROMPT_TEMPLATES[prompt_key][model_name]
+	2. PROMPT_TEMPLATES[prompt_key]["default"]
+	3. SYSTEM_PROMPT
+	"""
+	pk = PROMPT_TEMPLATES.get(prompt_key, {})
+	if model_name in pk:
+		return pk[model_name]
+	if "default" in pk:
+		return pk["default"]
+	return SYSTEM_PROMPT

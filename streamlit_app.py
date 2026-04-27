@@ -12,6 +12,7 @@ from retrieval.retreiver import Retriever
 from retrieval.bm25_retreiver import BM25Retriever
 from retrieval.hybrid_retreiver import HybridRetriever
 from rag.engine import RAGEngine
+from rag.router import Router
 from mitre_chunker import save_mitre_documents
 
 
@@ -51,22 +52,23 @@ def load_pipeline():
         texts, meta = loader.load_mitre(MITRE_JSON_PATH)
         mitre_store = FAISSStore(doc_store.index.d)
         bar = st.sidebar.progress(0, text="Building MITRE index...")
-        
+
         for i in range(0, len(texts), 64):
             mitre_store.add(embedder.embed(texts[i:i+64]), texts[i:i+64], meta[i:i+64])
             bar.progress(min((i + 64) / len(texts), 1.0), text=f"MITRE: {min(i+64, len(texts))}/{len(texts)}")
-        
+
         mitre_store.save(MITRE_INDEX_PATH)
         save_mitre_documents(texts, meta, "mitre_chunks.json")
         status = f"built ({len(texts)} chunks)"
 
     embed_fn = embedder.embed
-    retriever = HybridRetriever(
-        bm25=BM25Retriever(chunks),
-        vector=Retriever(embed_fn, doc_store),
-        mitre_vector=mitre_store,
-    )
-    return RAGEngine(retriever, LLM(), embed_fn=embed_fn), len(chunks), status
+
+    retriever = HybridRetriever(bm25=BM25Retriever(chunks), vector=Retriever(embed_fn, doc_store), mitre_vector=mitre_store)
+
+    llm = LLM()
+    router = Router()
+
+    return RAGEngine(retriever=retriever, llm=llm, router=router, embed_fn=embed_fn), len(chunks), status
 
 
 # ── page setup ────────────────────────────────────────────────────────────────
@@ -86,6 +88,7 @@ with st.sidebar:
     st.metric("MITRE ATT&CK", "✓ Active" if mitre_ok else "✗ Disabled", delta=mitre_status)
     st.divider()
     st.caption("MITRE queries are detected automatically from keywords in your question.")
+    
     if st.button("Clear chat"):
         st.session_state.messages = []
         st.rerun()
@@ -107,7 +110,8 @@ if query := st.chat_input("Ask a question..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            answer = rag.ask(query)
+            answer, route_info = rag.ask(query, return_route=True)
+            st.caption(f"Model used: {route_info['model']}")
         st.markdown(answer)
 
         is_mitre = any(s in query.lower() for s in HybridRetriever.MITRE_SIGNALS)

@@ -1,21 +1,32 @@
-from typing import List, Callable, Optional
-from config import SYSTEM_PROMPT
+from typing import Callable, Optional, List
+from config import SYSTEM_PROMPT, get_prompt_template
+
 
 class RAGEngine:
-    MITRE_SIGNALS = ['mitre', 'att&ck', 'attack', 'technique', 'tactic', 'threat actor', 'adversar', 'exploit', 'malware', 'ransomware', 'phishing', 'lateral', 'persistence', 'exfiltration', 'command and control', 'c2', 'ttps', 'initial access', 'privilege escalation', 'defense evasion', 'credential', 'discovery', 'collection', 'impact', 'credential dump', 'lsass', 'ntds', 'sam database', 'pass the hash', 'kerberoast', 'mimikatz']
-
-    def __init__(self, retriever, llm, embed_fn: Optional[Callable[[List[str]], List[List[float]]]]=None):
+    def __init__(self, retriever, llm, router, embed_fn: Optional[Callable] = None):
         self.retriever = retriever
         self.llm = llm
+        self.router = router
         self.embed_fn = embed_fn
 
-    def _is_mitre_like(self, query: str) -> bool:
-        query_lower = query.lower()
-        return any((signal in query_lower for signal in self.MITRE_SIGNALS))
+    def ask(self, query: str, return_route: bool = False):
+        route_info = self.router.route(query)
 
-    def ask(self, query: str) -> str:
-        retrieval_query = f'MITRE ATT&CK {query}' if self._is_mitre_like(query) else query
+        retrieval_query = query
+        if route_info.get("domain") == "cyber":
+            retrieval_query = f"MITRE ATT&CK {query}"
+
         context_chunks = self.retriever.retrieve(retrieval_query, embed_fn=self.embed_fn)
-        context_text = '\n\n'.join(context_chunks)
-        prompt = SYSTEM_PROMPT.format(context=context_text, query=query)
-        return self.llm.generate(prompt)
+        context_text = "\n\n".join(context_chunks)
+
+        # Choose a prompt template per the router's prompt_template key and model
+        prompt_key = route_info.get("prompt_template")
+        template = get_prompt_template(prompt_key, route_info.get("model", ""))
+
+        formatted_prompt = template.format(context=context_text, query=query)
+
+        answer = self.llm.generate(formatted_prompt, model_name=route_info["model"], system_prompt=template)
+
+        if return_route:
+            return answer, route_info
+        return answer
