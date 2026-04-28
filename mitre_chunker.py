@@ -1,24 +1,45 @@
+"""Utilities for parsing MITRE ATT&CK JSON into retrievable text chunks.
+
+This module loads MITRE ATT&CK content from the official JSON format and
+converts it into text chunks with metadata for indexing.
+"""
+
 import json
 import re
 from pathlib import Path
 from collections import Counter
 
 def _clean(text: str) -> str:
+    """Remove MITRE citation markers and trim whitespace from text."""
     return re.sub('\\(Citation:[^)]+\\)', '', text or '').strip()
 
 def _mitre_id(obj: dict) -> str:
+    """Extract the MITRE ATT&CK external ID from an object."""
     for ref in obj.get('external_references', []):
         if ref.get('source_name') == 'mitre-attack':
             return ref.get('external_id', '')
     return ''
 
 def _tactic_names(obj: dict) -> list[str]:
+    """Return the MITRE ATT&CK tactic phase names for an object."""
     return [p['phase_name'] for p in obj.get('kill_chain_phases', []) if p.get('kill_chain_name') == 'mitre-attack']
 
 def _platforms(obj: dict) -> list[str]:
+    """Normalize platform data from a MITRE object.
+
+    Some ATT&CK entries store platforms as strings and others as dicts.
+    """
     return [p if isinstance(p, str) else p.get('platform_name', '') for p in obj.get('x_mitre_platforms', [])]
 
 def load_mitre_documents(json_path: str) -> list[dict]:
+    """Load MITRE ATT&CK JSON and convert objects into searchable text chunks.
+
+    Args:
+        json_path (str): Path to the MITRE ATT&CK JSON bundle.
+
+    Returns:
+        list[dict]: Chunk dictionaries containing ``text`` and ``metadata``.
+    """
     objects = json.loads(Path(json_path).read_text(encoding='utf-8')).get('objects', [])
     tactics = {}
     techniques = []
@@ -84,6 +105,7 @@ def load_mitre_documents(json_path: str) -> list[dict]:
     return docs
 
 def save_mitre_documents(texts: list[str], meta: list[dict], output_path: str = "mitre_chunks.json"):
+    """Save parsed MITRE chunks and summary metadata to a JSON file."""
     counts = Counter(m["chunk_type"] for m in meta)
     output = {
         "summary": {

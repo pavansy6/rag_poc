@@ -1,11 +1,26 @@
+"""Document loading utilities for local file ingestion.
+
+This module provides :class:`Loader` which loads text from markdown, text, and
+PDF files as well as MITRE ATT&CK JSON data for indexing.
+"""
+
 import os
 from typing import List, Tuple, Dict, Any
 from pypdf import PdfReader
 from mitre_chunker import load_mitre_documents
 
 class Loader:
+    """Load documents from disk for ingestion into retrieval indexes."""
 
     def load_documents(self, folder: str) -> List[str]:
+        """Load all supported documents from a folder.
+
+        Args:
+            folder (str): Path to the directory containing source files.
+
+        Returns:
+            List[str]: A list of loaded document texts.
+        """
         documents = []
         try:
             files = os.listdir(folder)

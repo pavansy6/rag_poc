@@ -1,3 +1,10 @@
+"""Quick validation script for verifying the saved chunk store.
+
+This script loads a saved chunks pickle file and searches for a sample term
+inside the serialized chunk text. It is intended for quick sanity checks after
+ingestion or FAISS store creation.
+"""
+
 import pickle
 chunks_file = 'vectorstore_2026-04-24/chunks.pkl'
 try:

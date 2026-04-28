@@ -1,3 +1,9 @@
+"""Streamlit application for the CISO RAG Assistant.
+
+This module defines the UI, pipeline loading, and chat interaction flow for a
+Streamlit-based assistant that answers cybersecurity and compliance questions.
+"""
+
 import os
 import pickle
 import streamlit as st
@@ -17,10 +23,12 @@ from mitre_chunker import save_mitre_documents
 
 
 def _mitre_exists():
+    """Return True if the MITRE FAISS index already exists locally."""
     return os.path.exists(os.path.join(MITRE_INDEX_PATH, "index.faiss"))
 
 
 def _mitre_chunk_count():
+    """Count saved MITRE chunks from the persisted FAISS store metadata."""
     pkl = os.path.join(MITRE_INDEX_PATH, "chunks.pkl")
     if not os.path.exists(pkl):
         return 0
@@ -31,6 +39,12 @@ def _mitre_chunk_count():
 
 @st.cache_resource
 def load_pipeline():
+    """Load or build the retrieval pipeline used by the Streamlit application.
+
+    Returns:
+        tuple[RAGEngine, int, str]: The pipeline engine, total chunk count, and
+            MITRE index status string.
+    """
     loader, chunker, embedder = Loader(), Chunker(), Embedder()
 
     # doc store
