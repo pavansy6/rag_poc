@@ -18,8 +18,6 @@ from retrieval.retreiver import Retriever
 from retrieval.bm25_retreiver import BM25Retriever
 from retrieval.hybrid_retreiver import HybridRetriever
 from rag.engine import RAGEngine
-from rag.router import Router
-from mitre_chunker import save_mitre_documents
 
 
 def _mitre_exists():
@@ -80,9 +78,8 @@ def load_pipeline():
     retriever = HybridRetriever(bm25=BM25Retriever(chunks), vector=Retriever(embed_fn, doc_store), mitre_vector=mitre_store)
 
     llm = LLM()
-    router = Router()
 
-    return RAGEngine(retriever=retriever, llm=llm, router=router, embed_fn=embed_fn), len(chunks), status
+    return RAGEngine(retriever=retriever, llm=llm, embed_fn=embed_fn), len(chunks), status
 
 
 # ── page setup ────────────────────────────────────────────────────────────────

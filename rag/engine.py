@@ -1,9 +1,8 @@
 """RAG (Retrieval-Augmented Generation) engine that coordinates retrieval and LLM generation.
 
-This module provides :class:`RAGEngine` which ties together a retriever, an
-LLM, and a router to produce context-aware responses. Depending on the
-classification from the router, the engine may adapt the retrieval query and
-select a different prompt template or model for generation.
+This module provides :class:`RAGEngine` which retrieves context and generates
+answers using either the cybersecurity model (if relevant documents found) or
+a fallback model (if no relevant context).
 """
 
 from typing import Callable, Optional, List
@@ -13,36 +12,31 @@ from config import SYSTEM_PROMPT, get_prompt_template
 class RAGEngine:
     """Orchestrates retrieval and LLM generation to answer user queries.
 
-    The engine uses a `retriever` to fetch context chunks, formats a prompt
-    using a template selected via the `router`, and calls the `llm` to
-    generate a final answer.
+    The engine retrieves context chunks first. If relevant content is found,
+    it uses the cybersecurity model with cyber prompt. If no relevant content
+    is found, it falls back to llama3.1:8b for general knowledge.
 
     Args:
         retriever: Object with a `retrieve(query, embed_fn=...)` method that
             returns an iterable of context strings.
         llm: Object exposing a `generate(prompt, model_name=..., system_prompt=...)`
             method for producing model outputs.
-        router: Router-like object with a `route(query)` method returning routing
-            metadata (domain, model, prompt_template).
         embed_fn (Optional[Callable]): Optional embedding function passed to the
             retriever.
     """
 
-    def __init__(self, retriever, llm, router, embed_fn: Optional[Callable] = None):
+    def __init__(self, retriever, llm, embed_fn: Optional[Callable] = None):
         self.retriever = retriever
         self.llm = llm
-        self.router = router
         self.embed_fn = embed_fn
 
     def ask(self, query: str, return_route: bool = False, conversation_history: Optional[List[dict]] = None):
-        """Answer a query by retrieving context and invoking the LLM.
+        """Answer a query by retrieving context first, then deciding on model/prompt.
 
-        The method first asks the `router` for routing information which can
-        alter the retrieval query (for example, prepending "MITRE ATT&CK"
-        for cybersecurity queries). It then retrieves context chunks, selects
-        an appropriate prompt template, formats it, and calls the LLM to
-        generate an answer. If conversation history is provided, it is included
-        in the prompt to maintain context across multi-turn interactions.
+        The method retrieves context chunks first. If relevant content is found,
+        it uses the cybersecurity model (foundation-sec:8b) with cyber prompt.
+        If no relevant content is found, it falls back to llama3.1:8b for general
+        knowledge. Conversation history is included to maintain multi-turn context.
 
         Args:
             query (str): The user-provided question or instruction.
@@ -54,26 +48,32 @@ class RAGEngine:
         Returns:
             str or (str, dict): The generated answer, optionally with routing info.
         """
-        route_info = self.router.route(query)
-
-        retrieval_query = query
-        # For cybersecurity domain, bias retrieval towards MITRE ATT&CK content.
-        # if route_info.get("domain") == "cyber":
-        #     retrieval_query = f"MITRE ATT&CK {query}"
-
-        context_chunks = self.retriever.retrieve(retrieval_query, embed_fn=self.embed_fn)
+        # Retrieve context first
+        context_chunks = self.retriever.retrieve(query, embed_fn=self.embed_fn)
         context_text = "\n\n".join(context_chunks)
 
-        # Choose a prompt template per the router's prompt_template key and model
-        prompt_key = route_info.get("prompt_template")
-        template = get_prompt_template(prompt_key, route_info.get("model", ""))
+        # Decide on model and prompt based on retrieval results
+        if context_chunks:
+            # Found relevant content - use cyber model with cyber prompt
+            model = "qwen2.5:1.5b"
+            prompt_key = "cyber"
+            domain = "cyber"
+        else:
+            # No relevant content - fallback to llama3.1:8b
+            model = "llama3.1:8b"
+            prompt_key = "general"
+            domain = "fallback"
+
+        template = get_prompt_template(prompt_key, model)
 
         # Format prompt with context, conversation history, and query
         formatted_prompt = self._format_prompt_with_history(
             template, context=context_text, query=query, history=conversation_history
         )
 
-        answer = self.llm.generate(formatted_prompt, model_name=route_info["model"], system_prompt=template)
+        answer = self.llm.generate(formatted_prompt, model_name=model, system_prompt=template)
+
+        route_info = {"domain": domain, "model": model, "prompt_template": prompt_key}
 
         if return_route:
             return answer, route_info

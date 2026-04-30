@@ -63,9 +63,9 @@ class Router:
         category = response.content.strip().lower()
 
         mapping = {
-            "cybersecurity": {"domain": "cyber", "model": "qwen2.5:1.5b", "prompt_template": "cyber"},
+            "cybersecurity": {"domain": "cyber", "model": "qwen2.5:1.5b", "prompt_template": "cybersecurity"},
             "data_science": {"domain": "data_science", "model": "llama3.1:8b", "prompt_template": "ds"},
-            "general": {"domain": "general", "model": "qwen2.5:1.5b", "prompt_template": "general"},
+            "general": {"domain": "general", "model": "llama3.1:8b", "prompt_template": "general"},
         }
 
         return mapping.get(category, mapping["general"])

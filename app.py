@@ -16,7 +16,7 @@ from retrieval.bm25_retreiver import BM25Retriever
 from retrieval.retreiver import Retriever
 from retrieval.hybrid_retreiver import HybridRetriever
 from rag.engine import RAGEngine
-from rag.router import Router
+
 EMBEDDING_DIMENSION = 768
 
 def get_embedding_function():
@@ -90,12 +90,11 @@ def build_rag_pipeline():
     document_store, document_chunks = build_document_store()
     mitre_store = build_mitre_store()
     llm = LLM()
-    router = Router()
     embed_fn = get_embedding_function()
     bm25_retriever = BM25Retriever(document_chunks)
     vector_retriever = Retriever(embed_fn, document_store)
     hybrid_retriever = HybridRetriever(bm25=bm25_retriever, vector=vector_retriever, mitre_vector=mitre_store)
-    engine = RAGEngine(retriever=hybrid_retriever, llm=llm, router=router, embed_fn=embed_fn)
+    engine = RAGEngine(retriever=hybrid_retriever, llm=llm, embed_fn=embed_fn)
     return engine
 
 def run_interactive_loop(engine):
