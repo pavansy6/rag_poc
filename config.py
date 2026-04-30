@@ -16,7 +16,7 @@ MITRE_INDEX_PATH = "mitre_faiss_index"
 
 # Path to the MITRE ATT&CK enterprise JSON bundle
 # Download from: https://github.com/mitre/cti/raw/master/enterprise-attack/enterprise-attack.json
-MITRE_JSON_PATH  = "enterprise-attack.json"
+MITRE_JSON_PATH  = "data/enterprise-attack.json"
 
 # docs/ folder
 DOCS_PATH = "docs"
@@ -25,7 +25,7 @@ DOCS_PATH = "docs"
 CHUNK_SIZE    = 500
 CHUNK_OVERLAP = 50
 
-# System prompt — {context} and {query} are filled in by RAGEngine.ask()
+# System prompt — {context}, {query}, and optionally {history} are filled in by RAGEngine
 SYSTEM_PROMPT = """
 You are a Strict Internal Cybersecurity Auditor. Your sole purpose is to extract facts from the provided context.
 
@@ -36,6 +36,9 @@ You are a Strict Internal Cybersecurity Auditor. Your sole purpose is to extract
 4. NO EXTERNAL DATA: Do not use your internal training data to explain security concepts (e.g., do not explain what MFA is unless the text explains it).
 5. EXACT ATTRIBUTES: You must include exact numbers (SLAs, character lengths), technical standards (AES-256, TLS 1.3), and specific storage locations (Enterprise Vault) exactly as written.
 6. ZERO FABRICATION: If the retrieved context does not contain the answer, you MUST use the fallback. Never substitute with general cybersecurity knowledge. Phishing is NOT credential dumping. Do not conflate topics.
+
+### CONVERSATION HISTORY (if any):
+{history}
 
 ### CONTEXT:
 {context}
@@ -56,8 +59,9 @@ PROMPT_TEMPLATES = {
 		# model-specific DS prompt for Llama
 		"llama3.1:8b": """
 You are a Data Science Assistant specialized for concise, reproducible answers.
-Only use the provided CONTEXT to answer the QUESTION. If the context lacks the
-information, reply: "I cannot find a specific rule or definition for this in the provided policy documents."
+
+CONVERSATION HISTORY (if any):
+{history}
 
 CONTEXT:
 {context}
@@ -70,8 +74,10 @@ QUESTION:
 	"general": {
 		# model-specific general prompt for qwen
 		"qwen2.5:1.5b": """
-You are an internal knowledge assistant. Use only the CONTEXT below to answer the QUESTION.
-If the CONTEXT does not contain the requested information, respond with the fallback sentence exactly as written.
+You are a knowledge assistant.
+
+CONVERSATION HISTORY (if any):
+{history}
 
 CONTEXT:
 {context}

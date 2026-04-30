@@ -124,7 +124,8 @@ if query := st.chat_input("Ask a question..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            answer, route_info = rag.ask(query, return_route=True)
+            # Pass conversation history to the RAG engine for context awareness
+            answer, route_info = rag.ask(query, return_route=True, conversation_history=st.session_state.messages[:-1])
             st.caption(f"Model used: {route_info['model']}")
         st.markdown(answer)
 

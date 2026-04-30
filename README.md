@@ -114,11 +114,6 @@ http://localhost:8501
 
 ---
 
-## Notes
-
-* Downloaded models are cached locally.
-* FAISS files are stored in the root directory.
-* If you add new documents, re-run the app to rebuild embeddings.
 
 ---
 
