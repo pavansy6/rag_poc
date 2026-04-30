@@ -12,3 +12,5 @@ wheels/
 # Data files
 data/
 docs/
+mitre_faiss_index/
+faiss_index/

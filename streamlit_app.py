@@ -8,7 +8,7 @@ import os
 import pickle
 import streamlit as st
 
-from config import DOCS_PATH, MITRE_INDEX_PATH, MITRE_JSON_PATH
+from config import DOCS_PATH, MITRE_INDEX_PATH, MITRE_JSON_PATH, FAISS_INDEX_PATH
 from models.llm import LLM
 from models.embeddings import Embedder
 from ingestion.loader import Loader
@@ -18,6 +18,7 @@ from retrieval.retreiver import Retriever
 from retrieval.bm25_retreiver import BM25Retriever
 from retrieval.hybrid_retreiver import HybridRetriever
 from rag.engine import RAGEngine
+from mitre_chunker import save_mitre_documents
 
 
 def _mitre_exists():
@@ -45,13 +46,20 @@ def load_pipeline():
     """
     loader, chunker, embedder = Loader(), Chunker(), Embedder()
 
-    # doc store
-    chunks = []
-    for doc in loader.load_documents(DOCS_PATH):
-        chunks.extend(chunker.chunk(doc))
-    
-    doc_store = FAISSStore(len(embedder.embed(chunks[:1])[0]))
-    doc_store.add(embedder.embed(chunks), chunks)
+    # doc store — load if exists, otherwise build and save
+    doc_store_status = "built"
+    if os.path.exists(os.path.join(FAISS_INDEX_PATH, "index.faiss")):
+        doc_store = FAISSStore.load(FAISS_INDEX_PATH, len(embedder.embed(["test"])[0]))
+        doc_store_status = "loaded"
+        chunks = doc_store.texts
+    else:
+        chunks = []
+        for doc in loader.load_documents(DOCS_PATH):
+            chunks.extend(chunker.chunk(doc))
+        
+        doc_store = FAISSStore(len(embedder.embed(chunks[:1])[0]))
+        doc_store.add(embedder.embed(chunks), chunks)
+        doc_store.save(FAISS_INDEX_PATH)
 
     # mitre store
     mitre_store, status = None, "enterprise-attack.json not found — MITRE disabled"

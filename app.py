@@ -6,7 +6,7 @@ simple interactive command-line loop for user queries.
 """
 
 import os
-from config import DOCS_PATH, MITRE_INDEX_PATH, MITRE_JSON_PATH
+from config import DOCS_PATH, MITRE_INDEX_PATH, MITRE_JSON_PATH, FAISS_INDEX_PATH
 from ingestion.loader import Loader
 from ingestion.chunker import Chunker
 from vectordb.faiss_store import FAISSStore
@@ -33,14 +33,20 @@ def get_embedding_function():
     return embed_texts
 
 def build_document_store():
-    """Build a FAISS store for document chunks from the docs folder.
+    """Build a FAISS store for document chunks from the docs folder, or load if exists.
 
-    This function loads files from ``DOCS_PATH``, chunks each document, embeds
-    the resulting text chunks, and indexes them in a FAISS store.
+    This function checks if a saved document store already exists. If it does,
+    the store is loaded from disk. Otherwise, documents are loaded from ``DOCS_PATH``,
+    chunked, embedded, and indexed in a FAISS store, then saved for future runs.
 
     Returns:
         tuple[FAISSStore, List[str]]: The FAISS store and the list of chunk texts.
     """
+    if os.path.exists(os.path.join(FAISS_INDEX_PATH, "index.faiss")):
+        embedder = Embedder()
+        store = FAISSStore.load(FAISS_INDEX_PATH, len(embedder.embed(["test"])[0]))
+        return (store, store.texts)
+
     loader = Loader()
     chunker = Chunker()
     documents = loader.load_documents(DOCS_PATH)
@@ -50,6 +56,7 @@ def build_document_store():
     store = FAISSStore(EMBEDDING_DIMENSION)
     embeddings = get_embedding_function()(chunks)
     store.add(embeddings, chunks)
+    store.save(FAISS_INDEX_PATH)
     return (store, chunks)
 
 
