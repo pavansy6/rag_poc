@@ -19,8 +19,7 @@ class BM25Retriever:
     def __init__(self, chunks: List[str]):
         self.chunks = chunks
         # Simple whitespace tokenization on lowercased text for BM25 indexing.
-        tokenized_chunks = [chunk.lower().split() for chunk in chunks]
-        self.bm25 = BM25Okapi(tokenized_chunks)
+        self.bm25 = BM25Okapi([chunk.lower().split() for chunk in chunks])
 
     def retrieve(self, query: str, k: int=3) -> List[str]:
         """Return the top-k chunks for a textual query using BM25.
@@ -32,6 +31,4 @@ class BM25Retriever:
         Returns:
             List[str]: The top matching text chunks.
         """
-        tokenized_query = query.lower().split()
-        top_results = self.bm25.get_top_n(tokenized_query, self.chunks, n=k)
-        return top_results
+        return self.bm25.get_top_n(query.lower().split(), self.chunks, n=k)

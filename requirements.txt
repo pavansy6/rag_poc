@@ -6,9 +6,6 @@ langchain
 pypdf
 python-docx
 unstructured
-fastapi
-uvicorn
-python-multipart
 accelerate
 bitsandbytes
 torchvision

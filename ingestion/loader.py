@@ -33,22 +33,23 @@ class Loader:
         for filename in files:
             file_path = os.path.join(folder, filename)
             try:
-                if filename.endswith(('.txt', '.md')):
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        documents.append(content)
-                elif filename.endswith('.pdf'):
-                    content = self._extract_pdf_text(file_path)
-                    if content:
-                        documents.append(content)
-                elif filename.endswith('.docx'):
-                    content = self._extract_docx_text(file_path)
-                    if content:
-                        documents.append(content)
+                content = self._load_file(file_path, filename)
+                if content:
+                    documents.append(content)
             except Exception as e:
                 print(f'Error loading {filename}: {e}')
-                continue
         return documents
+
+    def _load_file(self, file_path: str, filename: str) -> str:
+        """Load any supported file type based on extension."""
+        if filename.endswith(('.txt', '.md')):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        elif filename.endswith('.pdf'):
+            return self._extract_pdf_text(file_path)
+        elif filename.endswith('.docx'):
+            return self._extract_docx_text(file_path)
+        return ''
 
     def _extract_pdf_text(self, pdf_path: str) -> str:
         try:

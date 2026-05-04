@@ -99,8 +99,4 @@ def get_prompt_template(prompt_key: str, model_name: str) -> str:
 	3. SYSTEM_PROMPT
 	"""
 	pk = PROMPT_TEMPLATES.get(prompt_key, {})
-	if model_name in pk:
-		return pk[model_name]
-	if "default" in pk:
-		return pk["default"]
-	return SYSTEM_PROMPT
+	return pk.get(model_name) or pk.get("default") or SYSTEM_PROMPT

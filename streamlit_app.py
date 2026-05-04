@@ -2,28 +2,16 @@
 
 This module defines the UI, pipeline loading, and chat interaction flow for a
 Streamlit-based assistant that answers cybersecurity and compliance questions.
+The core pipeline building logic is shared via rag/pipeline_builder.py.
 """
 
 import os
 import pickle
 import streamlit as st
 
-from config import DOCS_PATH, MITRE_INDEX_PATH, MITRE_JSON_PATH, FAISS_INDEX_PATH
-from models.llm import LLM
-from models.embeddings import Embedder
-from ingestion.loader import Loader
-from ingestion.chunker import Chunker
-from vectordb.faiss_store import FAISSStore
-from retrieval.retreiver import Retriever
-from retrieval.bm25_retreiver import BM25Retriever
+from config import MITRE_INDEX_PATH
+from rag.pipeline_builder import build_rag_pipeline
 from retrieval.hybrid_retreiver import HybridRetriever
-from rag.engine import RAGEngine
-from mitre_chunker import save_mitre_documents
-
-
-def _mitre_exists():
-    """Return True if the MITRE FAISS index already exists locally."""
-    return os.path.exists(os.path.join(MITRE_INDEX_PATH, "index.faiss"))
 
 
 def _mitre_chunk_count():
@@ -44,50 +32,21 @@ def load_pipeline():
         tuple[RAGEngine, int, str]: The pipeline engine, total chunk count, and
             MITRE index status string.
     """
-    loader, chunker, embedder = Loader(), Chunker(), Embedder()
-
-    # doc store — load if exists, otherwise build and save
-    doc_store_status = "built"
-    if os.path.exists(os.path.join(FAISS_INDEX_PATH, "index.faiss")):
-        doc_store = FAISSStore.load(FAISS_INDEX_PATH, len(embedder.embed(["test"])[0]))
-        doc_store_status = "loaded"
-        chunks = doc_store.texts
-    else:
-        chunks = []
-        for doc in loader.load_documents(DOCS_PATH):
-            chunks.extend(chunker.chunk(doc))
-        
-        doc_store = FAISSStore(len(embedder.embed(chunks[:1])[0]))
-        doc_store.add(embedder.embed(chunks), chunks)
-        doc_store.save(FAISS_INDEX_PATH)
-
-    # mitre store
-    mitre_store, status = None, "enterprise-attack.json not found — MITRE disabled"
-
-    if _mitre_exists():
-        mitre_store = FAISSStore.load(MITRE_INDEX_PATH, doc_store.index.d)
+    rag = build_rag_pipeline()
+    
+    # Get chunk counts from the retriever
+    doc_count = len(rag.retriever.bm25.chunks) if hasattr(rag.retriever.bm25, 'chunks') else 0
+    
+    # Determine MITRE status
+    mitre_store = rag.retriever.mitre_vector
+    if mitre_store is None:
+        status = "enterprise-attack.json not found — MITRE disabled"
+    elif os.path.exists(os.path.join(MITRE_INDEX_PATH, "index.faiss")):
         status = f"loaded ({_mitre_chunk_count()} chunks)"
-
-    elif os.path.exists(MITRE_JSON_PATH):
-        texts, meta = loader.load_mitre(MITRE_JSON_PATH)
-        mitre_store = FAISSStore(doc_store.index.d)
-        bar = st.sidebar.progress(0, text="Building MITRE index...")
-
-        for i in range(0, len(texts), 64):
-            mitre_store.add(embedder.embed(texts[i:i+64]), texts[i:i+64], meta[i:i+64])
-            bar.progress(min((i + 64) / len(texts), 1.0), text=f"MITRE: {min(i+64, len(texts))}/{len(texts)}")
-
-        mitre_store.save(MITRE_INDEX_PATH)
-        save_mitre_documents(texts, meta, "mitre_chunks.json")
-        status = f"built ({len(texts)} chunks)"
-
-    embed_fn = embedder.embed
-
-    retriever = HybridRetriever(bm25=BM25Retriever(chunks), vector=Retriever(embed_fn, doc_store), mitre_vector=mitre_store)
-
-    llm = LLM()
-
-    return RAGEngine(retriever=retriever, llm=llm, embed_fn=embed_fn), len(chunks), status
+    else:
+        status = f"built ({len(mitre_store.texts)} chunks)"
+    
+    return rag, doc_count, status
 
 
 # ── page setup ────────────────────────────────────────────────────────────────

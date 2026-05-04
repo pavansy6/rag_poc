@@ -6,7 +6,13 @@ a fallback model (if no relevant context).
 """
 
 from typing import Callable, Optional, List
-from config import SYSTEM_PROMPT, get_prompt_template
+from config import get_prompt_template
+
+# Model routing configuration: maps (has_context) -> (model_name, prompt_key, domain)
+MODEL_ROUTING = {
+    True: ("qwen2.5:1.5b", "cyber", "cyber"),
+    False: ("llama3.1:8b", "general", "fallback"),
+}
 
 
 class RAGEngine:
@@ -52,18 +58,8 @@ class RAGEngine:
         context_chunks = self.retriever.retrieve(query, embed_fn=self.embed_fn)
         context_text = "\n\n".join(context_chunks)
 
-        # Decide on model and prompt based on retrieval results
-        if context_chunks:
-            # Found relevant content - use cyber model with cyber prompt
-            model = "qwen2.5:1.5b"
-            prompt_key = "cyber"
-            domain = "cyber"
-        else:
-            # No relevant content - fallback to llama3.1:8b
-            model = "llama3.1:8b"
-            prompt_key = "general"
-            domain = "fallback"
-
+        # Route to appropriate model based on context availability
+        model, prompt_key, domain = MODEL_ROUTING[bool(context_chunks)]
         template = get_prompt_template(prompt_key, model)
 
         # Format prompt with context, conversation history, and query
@@ -96,23 +92,17 @@ class RAGEngine:
         Returns:
             str: The formatted prompt ready for the LLM.
         """
-        # Build conversation history string if provided
+        # Build conversation history string from last 8 messages to avoid token bloat
         history_text = ""
-        if history and len(history) > 0:
-            # Include last 4 exchanges (8 messages) to avoid token bloat
+        if history:
             recent_history = history[-8:]
-            history_lines = []
-            for msg in recent_history:
-                role = msg.get("role", "user").upper()
-                content = msg.get("content", "").strip()
-                history_lines.append(f"{role}: {content}")
-            history_text = "\n".join(history_lines)
+            history_text = "\n".join(
+                f"{msg.get('role', 'user').upper()}: {msg.get('content', '').strip()}"
+                for msg in recent_history
+            )
 
-        # Try to format with history if template supports it, otherwise fall back to basic format
+        # Format with history; fall back to context+query if template doesn't support {history}
         try:
-            formatted = template.format(context=context, query=query, history=history_text)
+            return template.format(context=context, query=query, history=history_text)
         except KeyError:
-            # Template doesn't have {history} placeholder, use standard format
-            formatted = template.format(context=context, query=query)
-
-        return formatted
+            return template.format(context=context, query=query)

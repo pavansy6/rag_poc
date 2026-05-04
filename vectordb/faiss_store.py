@@ -72,10 +72,6 @@ class FAISSStore:
 
         return results
 
-    def search_texts(self, embedding, k: int = 5):
-        """Return only the text content for the top-k search results."""
-        return [r["text"] for r in self.search(embedding, k=k)]
-
     def save(self, folder: Optional[str] = None):
         """Persist the FAISS index and chunk metadata to disk.
 

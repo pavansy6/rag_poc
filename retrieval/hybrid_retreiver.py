@@ -9,6 +9,24 @@ retriever will append additional MITRE-specific chunks to the results.
 from typing import List, Callable, Optional, Any
 
 
+def _extract_text(result: Any) -> str:
+    """Normalize a retrieval result to a text string.
+    
+    Some retrievers return dict-like hits (e.g., {'text': ...}), while
+    others may return plain strings. This helper ensures we always work
+    with text values.
+    
+    Args:
+        result: The result to extract text from (dict or string).
+    
+    Returns:
+        str: The extracted text content.
+    """
+    if isinstance(result, dict):
+        return result['text']
+    return result
+
+
 class HybridRetriever:
     """Combine multiple retrieval strategies into a single ranked result list.
 
@@ -60,19 +78,8 @@ class HybridRetriever:
         bm25_results = self.bm25.retrieve(query, k=2)
         vector_results = self.vector.retrieve(query)[:1]
 
-        def extract_text(result: Any) -> str:
-            """Normalize a retrieval result to a text string.
-
-            Some retrievers return dict-like hits (e.g., {'text': ...}), while
-            others may return plain strings. This helper ensures we always work
-            with text values.
-            """
-            if isinstance(result, dict):
-                return result['text']
-            return result
-
-        bm25_texts = [extract_text(r) for r in bm25_results]
-        vector_texts = [extract_text(r) for r in vector_results]
+        bm25_texts = [_extract_text(r) for r in bm25_results]
+        vector_texts = [_extract_text(r) for r in vector_results]
         combined = list(dict.fromkeys(bm25_texts + vector_texts))
 
         # If a MITRE vector store is provided and the query appears MITRE-related,
